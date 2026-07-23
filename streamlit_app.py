@@ -125,25 +125,38 @@ elif st.session_state.quiz_started and not st.session_state.quiz_finished:
  
     # フォームごとにキーを変えることで入力欄をリセットする
     with st.form(key=f"form_{st.session_state.total}", clear_on_submit=True):
-        user_answer = st.number_input("答えを入力してEnter", step=1, format="%d")
+        user_answer_text = st.text_input(
+            "答えを入力してEnter", placeholder="ここに数字を入力"
+        )
         submitted = st.form_submit_button("回答する")
  
         if submitted:
-            st.session_state.total += 1
-            is_correct = int(user_answer) == problem["answer"]
-            if is_correct:
-                st.session_state.score += 1
+            # 空欄・数字以外が入力された場合は無効な回答として扱う
+            try:
+                user_answer = int(user_answer_text.strip())
+                valid_input = True
+            except ValueError:
+                user_answer = None
+                valid_input = False
  
-            st.session_state.history.append(
-                {
-                    "問題": f"{problem['a']} {problem['op']} {problem['b']}",
-                    "あなたの回答": int(user_answer),
-                    "正解": problem["answer"],
-                    "結果": "⭕" if is_correct else "❌",
-                }
-            )
-            new_problem()
-            st.rerun()
+            if not valid_input:
+                st.warning("数字を入力してください。")
+            else:
+                st.session_state.total += 1
+                is_correct = user_answer == problem["answer"]
+                if is_correct:
+                    st.session_state.score += 1
+ 
+                st.session_state.history.append(
+                    {
+                        "問題": f"{problem['a']} {problem['op']} {problem['b']}",
+                        "あなたの回答": user_answer,
+                        "正解": problem["answer"],
+                        "結果": "⭕" if is_correct else "❌",
+                    }
+                )
+                new_problem()
+                st.rerun()
  
     # タイマー表示を更新するための簡易オートリフレッシュ
     time.sleep(0.2)
