@@ -1,4 +1,5 @@
 import streamlit as st
+import pandas as pd
 import random
 import time
  
@@ -171,13 +172,38 @@ else:
     st.subheader(f"結果：{st.session_state.score} / {st.session_state.total} 問 正解")
  
     if st.session_state.total > 0:
+        wrong_count = st.session_state.total - st.session_state.score
         accuracy = st.session_state.score / st.session_state.total * 100
-        st.write(f"正答率：**{accuracy:.1f}%**")
+ 
+        col1, col2, col3 = st.columns(3)
+        col1.metric("⭕ 正解数", f"{st.session_state.score} 問")
+        col2.metric("❌ 不正解数", f"{wrong_count} 問")
+        col3.metric("🎯 正答率", f"{accuracy:.1f}%")
  
     if st.session_state.history:
-        st.write("### 回答履歴")
-        st.dataframe(st.session_state.history, use_container_width=True)
+        df = pd.DataFrame(st.session_state.history)
+        df.insert(0, "No.", range(1, len(df) + 1))
+ 
+        def highlight_result(row):
+            color = "#d9f2d9" if row["結果"] == "⭕" else "#f9d6d6"
+            return [f"background-color: {color}"] * len(row)
+ 
+        st.write("### 📋 回答履歴")
+        styled_df = df.style.apply(highlight_result, axis=1)
+        st.dataframe(styled_df, use_container_width=True, hide_index=True)
+ 
+        wrong_df = df[df["結果"] == "❌"]
+        if not wrong_df.empty:
+            with st.expander(f"❌ 間違えた問題だけを見直す（{len(wrong_df)}問）"):
+                st.dataframe(
+                    wrong_df.style.apply(highlight_result, axis=1),
+                    use_container_width=True,
+                    hide_index=True,
+                )
+        else:
+            st.success("全問正解でした！お見事です 🎉")
  
     if st.button("🔁 もう一度挑戦する", type="primary"):
         reset_quiz()
         st.rerun()
+ 
